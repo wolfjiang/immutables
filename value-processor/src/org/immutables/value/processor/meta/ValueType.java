@@ -87,6 +87,7 @@ public final class ValueType extends TypeIntrospectionBase implements HasStyleIn
   public Constitution constitution;
   public int defaultAttributesCount;
   public int derivedAttributesCount;
+  public int incValue;
 
   public Generics generics() {
     return constitution.generics();
@@ -295,6 +296,16 @@ public final class ValueType extends TypeIntrospectionBase implements HasStyleIn
 
   public boolean isOptionalAcceptNullable() {
     return style().optionalAcceptNullable();
+  }
+
+  public boolean isIncValueInit(){
+    this.incValue = -1;
+    return true;
+  }
+
+  public int incValue(){
+    this.incValue += 1;
+    return this.incValue;
   }
 
   @Nullable
@@ -689,6 +700,10 @@ public final class ValueType extends TypeIntrospectionBase implements HasStyleIn
 
   public boolean isUseConstructor() {
     return !getConstructorArguments().isEmpty();
+  }
+
+  public boolean isConstructorArgsLarge() {
+    return getSettableAttributes().size() > 250;
   }
 
   public boolean requiresAlternativeStrictConstructor() {

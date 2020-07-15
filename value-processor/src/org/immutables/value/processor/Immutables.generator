@@ -2526,9 +2526,13 @@ this.[n] = [valueFromValue v][invokeSuper v].[v.names.get]()[/valueFromValue];
       [/if][v.constructorParameterAnnotations][v.atNullability][immutableImplementationType v] [v.name][/for][/output.linesShortable]) {
   [else]
   private [type.typeImmutable.simple]([output.linesShortable]
-      [if type.synthCopyConstructor][type.typeImmutable.relative] [disambiguateField type 'original'],
-      [/if][for v in setters][if not for.first],
-      [/if][v.atNullability][immutableImplementationType v] [v.name][/for][/output.linesShortable]) {
+      [if type.constructorArgsLarge]
+        Object... params
+      [else]
+        [if type.synthCopyConstructor][type.typeImmutable.relative] [disambiguateField type 'original'],
+        [/if][for v in setters][if not for.first],
+        [/if][v.atNullability][immutableImplementationType v] [v.name][/for]
+      [/if][/output.linesShortable]) {
   [/if]
 [if type.hasEncodingValueOrVirtualFields or (type.generateSafeDerived and type.hasDerivedAttributes)]
   [let shim][disambiguateField type 'initShim'][/let]
@@ -2543,9 +2547,16 @@ this.[n] = [valueFromValue v][invokeSuper v].[v.names.get]()[/valueFromValue];
   [/for]
     [generateDerivedConstruction type setters]
 [else][-- Alternatively a lot simpler implementation]
-  [for v in setters, n = v.name]
+  [if type.constructorArgsLarge]
+    [if type.incValueInit][/if]
+    [for v in setters, n = v.name, index=type.incValue]
+    this.[n] = ([immutableImplementationTypeWithouNuable v])params['['][index][']'];
+    [/for]
+  [else]
+    [for v in setters, n = v.name]
     this.[n] = [n];
-  [/for]
+    [/for]
+  [/if]
   [for v in getters if v.generateDerived, n = v.name]
     this.[n] = [valueFromValue v][invokeSuper v].[v.names.get]()[/valueFromValue];
   [/for]
@@ -3576,6 +3587,28 @@ public static[type.generics.def] [type.typeValue.relative] [type.factoryOf.simpl
   [rr.implType v]
 [else if v.jdkOptional][-- need to watch out that here atNullable goes inside! --]
   [atNullable v][v.wrappedElementType]
+[else if v.customCollectionType]
+  [v.implementationType]
+[else if v.generateOrdinalValueSet andnot v.generateJdkOnly]
+  org.immutables.ordinal.ImmutableOrdinalSet[v.genericArgs]
+[else if v.generateSortedSet andnot v.generateJdkOnly]
+  [guava].collect.ImmutableSortedSet[v.genericArgs]
+[else if v.collectionType andnot v.generateJdkOnly]
+  [guava].collect.Immutable[v.rawCollectionType][v.genericArgs]
+[else if v.generateSortedMap andnot v.generateJdkOnly]
+  [guava].collect.ImmutableSortedMap[v.genericArgs]
+[else if v.mapType andnot v.generateJdkOnly]
+  [guava].collect.Immutable[v.rawMapType][v.genericArgs]
+[else]
+  [v.implementationType]
+[/if]
+[/output.trim][/template]
+
+[template immutableImplementationTypeWithouNuable Attribute v][output.trim]
+[if v.encoding]
+  [rr.implType v]
+[else if v.jdkOptional][-- need to watch out that here atNullable goes inside! --]
+  [v.wrappedElementType]
 [else if v.customCollectionType]
   [v.implementationType]
 [else if v.generateOrdinalValueSet andnot v.generateJdkOnly]
