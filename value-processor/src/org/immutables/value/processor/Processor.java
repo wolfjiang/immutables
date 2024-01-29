@@ -16,10 +16,11 @@
 package org.immutables.value.processor;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+
+import java.io.*;
 import java.util.Set;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -33,19 +34,8 @@ import org.immutables.generator.ForwardingFiler;
 import org.immutables.generator.ForwardingProcessingEnvironment;
 import org.immutables.value.processor.encode.EncodingMirror;
 import org.immutables.value.processor.encode.Generator_Encodings;
-import org.immutables.value.processor.meta.CustomImmutableAnnotations;
-import org.immutables.value.processor.meta.EnclosingMirror;
-import org.immutables.value.processor.meta.FConstructorMirror;
-import org.immutables.value.processor.meta.FIncludeMirror;
-import org.immutables.value.processor.meta.FactoryMirror;
-import org.immutables.value.processor.meta.ImmutableMirror;
-import org.immutables.value.processor.meta.ImmutableRound;
-import org.immutables.value.processor.meta.IncludeMirror;
-import org.immutables.value.processor.meta.ModifiableMirror;
+import org.immutables.value.processor.meta.*;
 import org.immutables.value.processor.meta.Proto.DeclaringPackage;
-import org.immutables.value.processor.meta.Round;
-import org.immutables.value.processor.meta.ValueType;
-import org.immutables.value.processor.meta.ValueUmbrellaMirror;
 
 @SupportedAnnotationTypes({
     ImmutableMirror.QUALIFIED_NAME,
@@ -92,6 +82,135 @@ public final class Processor extends AbstractGenerator {
     }
     if (round.environment().hasEncodeModule()) {
       invoke(new Generator_Encodings().generate());
+    }
+
+    ImmutableList<Proto.Protoclass> classes = round.collectProtoclasses();
+    if(!classes.isEmpty() && classes.get(0).packageOf().name().equals("com.q7link.framework.metadata.domain")){
+      updateEntity();
+      updateField();
+      updateEnumValue();
+    }
+  }
+
+  private void updateEntity(){
+    File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableEntity.java");
+    String str = readFile(file);
+    str = str.replace("import java.util.ArrayList;",
+        "import java.lang.reflect.InvocationTargetException;\n" +
+            "import java.lang.reflect.Method;\n" +
+            "import java.util.ArrayList;");
+    str = str.replace("private ImmutableEntity(",
+        "private static Method titleMethod = null;\n" +
+            "  private static Method descMethod = null;\n" +
+            "  static {\n" +
+            "    try {\n" +
+            "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
+            "      titleMethod = cls.getMethod(\"getEntityTitle\", Entity.class, String.class);\n" +
+            "      descMethod = cls.getMethod(\"getEntityDesc\", Entity.class, String.class);\n" +
+            "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
+            "    }\n" +
+            "  }\n" +
+            "  private ImmutableEntity(");
+    str = str.replace("return title;",
+        "if(titleMethod != null) {\n" +
+            "      try {\n" +
+            "        return (String)titleMethod.invoke(null, this, title);\n" +
+            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+            "      }\n" +
+            "    }\n" +
+            "    return title;");
+    str = str.replace("return Optional.ofNullable(desc);",
+        "if(titleMethod != null) {\n" +
+            "      try {\n" +
+            "        return (Optional<String>)descMethod.invoke(null, this, desc);\n" +
+            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+            "      }\n" +
+            "    }\n" +
+            "    return Optional.ofNullable(desc);");
+    writeFile(file, str);
+  }
+
+  private void updateField(){
+    File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableField.java");
+    String str = readFile(file);
+    str = str.replace("import java.util.ArrayList;",
+        "import java.lang.reflect.InvocationTargetException;\n" +
+            "import java.lang.reflect.Method;\n" +
+            "import java.util.ArrayList;");
+    str = str.replace("private ImmutableField(",
+        "private static Method titleMethod = null;\n" +
+            "  static {\n" +
+            "    try {\n" +
+            "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
+            "      titleMethod = cls.getMethod(\"getFieldTitle\", Field.class, String.class);\n" +
+            "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
+            "    }\n" +
+            "  }\n" +
+            "  private ImmutableField(");
+    str = str.replace("return title;",
+        "if(titleMethod != null) {\n" +
+            "      try {\n" +
+            "        return (String)titleMethod.invoke(null, this, title);\n" +
+            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+            "      }\n" +
+            "    }\n" +
+            "    return title;");
+    writeFile(file, str);
+  }
+
+  private void updateEnumValue(){
+    File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableEnumValueDef.java");
+    String str = readFile(file);
+    str = str.replace("import java.util.ArrayList;",
+        "import java.lang.reflect.InvocationTargetException;\n" +
+            "import java.lang.reflect.Method;\n" +
+            "import java.util.ArrayList;");
+    str = str.replace("private ImmutableEnumValueDef(",
+        "private static Method titleMethod = null;\n" +
+            "  static {\n" +
+            "    try {\n" +
+            "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
+            "      titleMethod = cls.getMethod(\"getEnumValueTitle\", ImmutableEnumValueDef.class, String.class);\n" +
+            "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
+            "    }\n" +
+            "  }\n" +
+            "  private ImmutableEnumValueDef(");
+    str = str.replace("return title;",
+        "if(titleMethod != null) {\n" +
+            "      try {\n" +
+            "        return (String)titleMethod.invoke(null, this, title);\n" +
+            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+            "      }\n" +
+            "    }\n" +
+            "    return title;");
+    writeFile(file, str);
+  }
+
+  private String readFile(File file) {
+    if (!file.exists()) {
+      throw new RuntimeException("file not found : " + file.getAbsolutePath());
+    }
+    try {
+      StringBuffer stringBuffer = new StringBuffer();
+      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
+      String content;
+      while ((content = bufferedReader.readLine()) != null) {
+        stringBuffer.append(content).append("\n");
+      }
+      bufferedReader.close();
+      return stringBuffer.toString();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void writeFile(File file, String content) {
+    try {
+      BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
+      bufferedWriter.write(content);
+      bufferedWriter.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
