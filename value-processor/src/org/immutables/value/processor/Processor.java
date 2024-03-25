@@ -94,6 +94,9 @@ public final class Processor extends AbstractGenerator {
 
   private void updateEntity(){
     File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableEntity.java");
+    if(!file.exists()){
+      return;
+    }
     String str = readFile(file);
     str = str.replace("import java.util.ArrayList;",
         "import java.lang.reflect.InvocationTargetException;\n" +
@@ -132,6 +135,9 @@ public final class Processor extends AbstractGenerator {
 
   private void updateField(){
     File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableField.java");
+    if(!file.exists()){
+      return;
+    }
     String str = readFile(file);
     str = str.replace("import java.util.ArrayList;",
         "import java.lang.reflect.InvocationTargetException;\n" +
@@ -160,6 +166,9 @@ public final class Processor extends AbstractGenerator {
 
   private void updateEnumValue(){
     File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableEnumValueDef.java");
+    if(!file.exists()){
+      return;
+    }
     String str = readFile(file);
     str = str.replace("import java.util.ArrayList;",
         "import java.lang.reflect.InvocationTargetException;\n" +
@@ -170,7 +179,7 @@ public final class Processor extends AbstractGenerator {
             "  static {\n" +
             "    try {\n" +
             "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
-            "      titleMethod = cls.getMethod(\"getEnumValueTitle\", ImmutableEnumValueDef.class, String.class);\n" +
+            "      titleMethod = cls.getMethod(\"getEnumValueTitle\", EnumValueDef.class, String.class);\n" +
             "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
             "    }\n" +
             "  }\n" +
