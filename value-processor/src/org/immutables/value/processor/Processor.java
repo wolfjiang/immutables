@@ -123,7 +123,7 @@ public final class Processor extends AbstractGenerator {
             "    }\n" +
             "    return title;");
     str = str.replace("return Optional.ofNullable(desc);",
-        "if(titleMethod != null) {\n" +
+        "if(descMethod != null) {\n" +
             "      try {\n" +
             "        return (Optional<String>)descMethod.invoke(null, this, desc);\n" +
             "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
@@ -145,10 +145,14 @@ public final class Processor extends AbstractGenerator {
             "import java.util.ArrayList;");
     str = str.replace("private ImmutableField(",
         "private static Method titleMethod = null;\n" +
+            "  private static Method descMethod = null;\n" +
+            "  private static Method placeHolderMethod = null;\n" +
             "  static {\n" +
             "    try {\n" +
             "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
             "      titleMethod = cls.getMethod(\"getFieldTitle\", Field.class, String.class);\n" +
+            "      descMethod = cls.getMethod(\"getFieldDesc\", Field.class, String.class);\n" +
+            "      placeHolderMethod = cls.getMethod(\"getFieldPlaceHolder\", Field.class, String.class);\n" +
             "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
             "    }\n" +
             "  }\n" +
@@ -161,6 +165,22 @@ public final class Processor extends AbstractGenerator {
             "      }\n" +
             "    }\n" +
             "    return title;");
+    str = str.replace("return Optional.ofNullable(desc);",
+        "if(descMethod != null) {\n" +
+            "      try {\n" +
+            "        return (Optional<String>)descMethod.invoke(null, this, desc);\n" +
+            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+            "      }\n" +
+            "    }\n" +
+            "    return Optional.ofNullable(desc);");
+    str = str.replace("return Optional.ofNullable(placeHolder);",
+        "if(placeHolderMethod != null) {\n" +
+            "      try {\n" +
+            "        return (Optional<String>)placeHolderMethod.invoke(null, this, placeHolder);\n" +
+            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+            "      }\n" +
+            "    }\n" +
+            "    return Optional.ofNullable(placeHolder);");
     writeFile(file, str);
   }
 
