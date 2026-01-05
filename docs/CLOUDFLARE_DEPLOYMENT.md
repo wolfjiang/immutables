@@ -15,9 +15,13 @@ To create the token:
 1. Log in to the Cloudflare Dashboard
 2. Go to "My Profile" > "API Tokens"
 3. Click "Create Token"
-4. Use the "Edit Cloudflare Workers" template or create a custom token
-5. Set the permissions to include "Account > Cloudflare Pages > Edit"
-6. Copy the token and add it as a GitHub secret named `CLOUDFLARE_API_TOKEN`
+4. Click "Create Custom Token"
+5. Set the Token name (e.g., "GitHub Pages Deploy")
+6. Under Permissions, add:
+   - Account > Cloudflare Pages > Edit
+7. Set Account Resources to include the account where your Pages project exists
+8. Click "Continue to summary" and then "Create Token"
+9. Copy the token and add it as a GitHub secret named `CLOUDFLARE_API_TOKEN`
 
 ### 2. CLOUDFLARE_ACCOUNT_ID
 Your Cloudflare Account ID can be found:
@@ -42,6 +46,18 @@ Make sure you have a Cloudflare Pages project created:
 **Option B: Update Workflow File**
 Edit `.github/workflows/cloudflare-pages.yml` and update the `CLOUDFLARE_PROJECT_NAME` default value in the `env` section to match your project name.
 
+### 4. Deployment Directory (Optional)
+The workflow deploys the `.javadoc` directory by default. If you need to deploy a different directory:
+
+**Option A: Set as Repository Variable**
+1. Go to your GitHub repository Settings
+2. Navigate to "Secrets and variables" > "Actions" > "Variables"
+3. Add a new repository variable named `DEPLOYMENT_DIRECTORY`
+4. Set its value to the directory you want to deploy (e.g., `docs`, `public`, or `.`)
+
+**Option B: Update Workflow File**
+Edit `.github/workflows/cloudflare-pages.yml` and update the `DEPLOYMENT_DIRECTORY` default value in the `env` section.
+
 ## How It Works
 
 The workflow automatically triggers when:
@@ -58,6 +74,11 @@ To manually trigger a deployment:
 4. Select the branch and click "Run workflow"
 
 ## Customizing the Deployment
+
+### Understanding triggers vs deployment directory
+The workflow triggers when JS/HTML/CSS files change anywhere in the repository, but only deploys a specific directory (`.javadoc` by default). This is intentional:
+- If your JS/HTML/CSS files are in the deployment directory, changes will trigger deployment of that directory
+- If your source files are elsewhere and compiled/copied to the deployment directory, you should commit those compiled files or add a build step to the workflow
 
 ### Change the deployment directory
 Edit `.github/workflows/cloudflare-pages.yml` and update the `directory` field under the Cloudflare Pages action step.
