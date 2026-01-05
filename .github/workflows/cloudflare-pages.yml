@@ -11,6 +11,10 @@ on:
       - '.javadoc/**'
   workflow_dispatch:
 
+env:
+  # Configure the Cloudflare Pages project name here or override via repository variable
+  CLOUDFLARE_PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME || 'immutables-docs' }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -22,18 +26,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build documentation
-        run: |
-          # Build javadoc or any documentation that needs to be deployed
-          # This is a placeholder - adjust based on actual build process
-          echo "Building documentation..."
-
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: immutables-docs
+          projectName: ${{ env.CLOUDFLARE_PROJECT_NAME }}
           directory: .javadoc
-          # Optional: Use a specific branch
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

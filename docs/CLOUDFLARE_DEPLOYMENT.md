@@ -31,7 +31,16 @@ Make sure you have a Cloudflare Pages project created:
 1. Go to the Cloudflare Dashboard
 2. Navigate to "Workers & Pages" > "Pages"
 3. Create a new project or use an existing one
-4. Update the `projectName` in `.github/workflows/cloudflare-pages.yml` to match your project name
+4. Note the project name
+
+**Option A: Set as Repository Variable (Recommended)**
+1. Go to your GitHub repository Settings
+2. Navigate to "Secrets and variables" > "Actions" > "Variables"
+3. Add a new repository variable named `CLOUDFLARE_PROJECT_NAME`
+4. Set its value to your Cloudflare Pages project name
+
+**Option B: Update Workflow File**
+Edit `.github/workflows/cloudflare-pages.yml` and update the `CLOUDFLARE_PROJECT_NAME` default value in the `env` section to match your project name.
 
 ## How It Works
 
