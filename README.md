@@ -38,3 +38,7 @@ Optional<String> description = v.description();
 ImmutableValueObject then would not be used outside generated type. See about this and other generation [styles here](https://immutables.github.io/style.html) 
 
 See [releases](https://github.com/immutables/immutables/releases) tab for release history. Archived [changelog](.archive/CHANGELOG.md) for earlier releases.
+
+## Cloudflare Pages Deployment
+
+This repository includes automatic deployment to Cloudflare Pages for documentation and static assets. See [Cloudflare Deployment Setup](docs/CLOUDFLARE_DEPLOYMENT.md) for configuration instructions.

@@ -1,0 +1,38 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.js'
+      - '**.html'
+      - '**.css'
+      - '.javadoc/**'
+  workflow_dispatch:
+
+env:
+  # Configure the Cloudflare Pages project name here or override via repository variable
+  CLOUDFLARE_PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME || 'immutables-docs' }}
+  # Configure the deployment directory here or override via repository variable
+  DEPLOYMENT_DIRECTORY: ${{ vars.DEPLOYMENT_DIRECTORY || '.javadoc' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    name: Deploy to Cloudflare Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ env.CLOUDFLARE_PROJECT_NAME }}
+          directory: ${{ env.DEPLOYMENT_DIRECTORY }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
