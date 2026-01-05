@@ -1,0 +1,39 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '**.js'
+      - '**.html'
+      - '**.css'
+      - '.javadoc/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    name: Deploy to Cloudflare Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build documentation
+        run: |
+          # Build javadoc or any documentation that needs to be deployed
+          # This is a placeholder - adjust based on actual build process
+          echo "Building documentation..."
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: immutables-docs
+          directory: .javadoc
+          # Optional: Use a specific branch
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
