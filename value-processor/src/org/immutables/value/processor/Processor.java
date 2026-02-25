@@ -16,17 +16,20 @@
 package org.immutables.value.processor;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 
 import java.io.*;
+import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.element.Element;
 import javax.tools.FileObject;
+import javax.tools.JavaFileObject;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileManager.Location;
 import org.immutables.generator.AbstractGenerator;
@@ -83,163 +86,221 @@ public final class Processor extends AbstractGenerator {
     if (round.environment().hasEncodeModule()) {
       invoke(new Generator_Encodings().generate());
     }
-
-    ImmutableList<Proto.Protoclass> classes = round.collectProtoclasses();
-    if(!classes.isEmpty() && classes.get(0).packageOf().name().equals("com.q7link.framework.metadata.domain")){
-      updateEntity();
-      updateField();
-      updateEnumValue();
-    }
   }
 
-  private void updateEntity(){
-    File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableEntity.java");
-    if(!file.exists()){
-      return;
-    }
-    String str = readFile(file);
-    str = str.replace("import java.util.ArrayList;",
+  // ---------------------------------------------------------------------------
+  // Intercepting Filer: patches generated source content at write time so that
+  // subsequent annotation-processing rounds can never overwrite our changes.
+  // ---------------------------------------------------------------------------
+
+  /** Replacements applied to ImmutableEntity.java */
+  private static final Map<String, String> ENTITY_REPLACEMENTS = buildEntityReplacements();
+  /** Replacements applied to ImmutableField.java */
+  private static final Map<String, String> FIELD_REPLACEMENTS = buildFieldReplacements();
+  /** Replacements applied to ImmutableEnumValueDef.java */
+  private static final Map<String, String> ENUM_VALUE_REPLACEMENTS = buildEnumValueReplacements();
+
+  private static Map<String, String> buildEntityReplacements() {
+    Map<String, String> m = new LinkedHashMap<>();
+    m.put("import java.util.ArrayList;",
         "import java.lang.reflect.InvocationTargetException;\n" +
-            "import java.lang.reflect.Method;\n" +
-            "import java.util.ArrayList;");
-    str = str.replace("private ImmutableEntity(",
+        "import java.lang.reflect.Method;\n" +
+        "import java.util.ArrayList;");
+    m.put("private ImmutableEntity(",
         "private static Method titleMethod = null;\n" +
-            "  private static Method descMethod = null;\n" +
-            "  static {\n" +
-            "    try {\n" +
-            "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
-            "      titleMethod = cls.getMethod(\"getEntityTitle\", Entity.class, String.class);\n" +
-            "      descMethod = cls.getMethod(\"getEntityDesc\", Entity.class, String.class);\n" +
-            "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
-            "    }\n" +
-            "  }\n" +
-            "  private ImmutableEntity(");
-    str = str.replace("return title;",
+        "  private static Method descMethod = null;\n" +
+        "  static {\n" +
+        "    try {\n" +
+        "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
+        "      titleMethod = cls.getMethod(\"getEntityTitle\", Entity.class, String.class);\n" +
+        "      descMethod = cls.getMethod(\"getEntityDesc\", Entity.class, String.class);\n" +
+        "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
+        "    }\n" +
+        "  }\n" +
+        "  private ImmutableEntity(");
+    m.put("return title;",
         "if(titleMethod != null) {\n" +
-            "      try {\n" +
-            "        return (String)titleMethod.invoke(null, this, title);\n" +
-            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
-            "      }\n" +
-            "    }\n" +
-            "    return title;");
-    str = str.replace("return Optional.ofNullable(desc);",
+        "      try {\n" +
+        "        return (String)titleMethod.invoke(null, this, title);\n" +
+        "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+        "      }\n" +
+        "    }\n" +
+        "    return title;");
+    m.put("return Optional.ofNullable(desc);",
         "if(descMethod != null) {\n" +
-            "      try {\n" +
-            "        return (Optional<String>)descMethod.invoke(null, this, desc);\n" +
-            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
-            "      }\n" +
-            "    }\n" +
-            "    return Optional.ofNullable(desc);");
-    writeFile(file, str);
+        "      try {\n" +
+        "        return (Optional<String>)descMethod.invoke(null, this, desc);\n" +
+        "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+        "      }\n" +
+        "    }\n" +
+        "    return Optional.ofNullable(desc);");
+    return m;
   }
 
-  private void updateField(){
-    File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableField.java");
-    if(!file.exists()){
-      return;
-    }
-    String str = readFile(file);
-    str = str.replace("import java.util.ArrayList;",
+  private static Map<String, String> buildFieldReplacements() {
+    Map<String, String> m = new LinkedHashMap<>();
+    m.put("import java.util.ArrayList;",
         "import java.lang.reflect.InvocationTargetException;\n" +
-            "import java.lang.reflect.Method;\n" +
-            "import java.util.ArrayList;");
-    str = str.replace("private ImmutableField(",
+        "import java.lang.reflect.Method;\n" +
+        "import java.util.ArrayList;");
+    m.put("private ImmutableField(",
         "private static Method titleMethod = null;\n" +
-            "  private static Method descMethod = null;\n" +
-            "  private static Method placeHolderMethod = null;\n" +
-            "  static {\n" +
-            "    try {\n" +
-            "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
-            "      titleMethod = cls.getMethod(\"getFieldTitle\", Field.class, String.class);\n" +
-            "      descMethod = cls.getMethod(\"getFieldDesc\", Field.class, String.class);\n" +
-            "      placeHolderMethod = cls.getMethod(\"getFieldPlaceHolder\", Field.class, String.class);\n" +
-            "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
-            "    }\n" +
-            "  }\n" +
-            "  private ImmutableField(");
-    str = str.replace("return title;",
+        "  private static Method descMethod = null;\n" +
+        "  private static Method placeHolderMethod = null;\n" +
+        "  static {\n" +
+        "    try {\n" +
+        "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
+        "      titleMethod = cls.getMethod(\"getFieldTitle\", Field.class, String.class);\n" +
+        "      descMethod = cls.getMethod(\"getFieldDesc\", Field.class, String.class);\n" +
+        "      placeHolderMethod = cls.getMethod(\"getFieldPlaceHolder\", Field.class, String.class);\n" +
+        "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
+        "    }\n" +
+        "  }\n" +
+        "  private ImmutableField(");
+    m.put("return title;",
         "if(titleMethod != null) {\n" +
-            "      try {\n" +
-            "        return (String)titleMethod.invoke(null, this, title);\n" +
-            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
-            "      }\n" +
-            "    }\n" +
-            "    return title;");
-    str = str.replace("return Optional.ofNullable(desc);",
+        "      try {\n" +
+        "        return (String)titleMethod.invoke(null, this, title);\n" +
+        "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+        "      }\n" +
+        "    }\n" +
+        "    return title;");
+    m.put("return Optional.ofNullable(desc);",
         "if(descMethod != null) {\n" +
-            "      try {\n" +
-            "        return (Optional<String>)descMethod.invoke(null, this, desc);\n" +
-            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
-            "      }\n" +
-            "    }\n" +
-            "    return Optional.ofNullable(desc);");
-    str = str.replace("return Optional.ofNullable(placeHolder);",
+        "      try {\n" +
+        "        return (Optional<String>)descMethod.invoke(null, this, desc);\n" +
+        "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+        "      }\n" +
+        "    }\n" +
+        "    return Optional.ofNullable(desc);");
+    m.put("return Optional.ofNullable(placeHolder);",
         "if(placeHolderMethod != null) {\n" +
-            "      try {\n" +
-            "        return (Optional<String>)placeHolderMethod.invoke(null, this, placeHolder);\n" +
-            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
-            "      }\n" +
-            "    }\n" +
-            "    return Optional.ofNullable(placeHolder);");
-    writeFile(file, str);
+        "      try {\n" +
+        "        return (Optional<String>)placeHolderMethod.invoke(null, this, placeHolder);\n" +
+        "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+        "      }\n" +
+        "    }\n" +
+        "    return Optional.ofNullable(placeHolder);");
+    return m;
   }
 
-  private void updateEnumValue(){
-    File file = new File("target/generated-sources/annotations/com/q7link/framework/metadata/domain/ImmutableEnumValueDef.java");
-    if(!file.exists()){
-      return;
-    }
-    String str = readFile(file);
-    str = str.replace("import java.util.ArrayList;",
+  private static Map<String, String> buildEnumValueReplacements() {
+    Map<String, String> m = new LinkedHashMap<>();
+    m.put("import java.util.ArrayList;",
         "import java.lang.reflect.InvocationTargetException;\n" +
-            "import java.lang.reflect.Method;\n" +
-            "import java.util.ArrayList;");
-    str = str.replace("private ImmutableEnumValueDef(",
+        "import java.lang.reflect.Method;\n" +
+        "import java.util.ArrayList;");
+    m.put("private ImmutableEnumValueDef(",
         "private static Method titleMethod = null;\n" +
-            "  static {\n" +
-            "    try {\n" +
-            "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
-            "      titleMethod = cls.getMethod(\"getEnumValueTitle\", EnumValueDef.class, String.class);\n" +
-            "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
-            "    }\n" +
-            "  }\n" +
-            "  private ImmutableEnumValueDef(");
-    str = str.replace("return title;",
+        "  static {\n" +
+        "    try {\n" +
+        "      Class cls = Class.forName(\"com.q7link.framework.common.utils.ClassInjection\");\n" +
+        "      titleMethod = cls.getMethod(\"getEnumValueTitle\", EnumValueDef.class, String.class);\n" +
+        "    } catch (ClassNotFoundException | NoSuchMethodException e) {\n" +
+        "    }\n" +
+        "  }\n" +
+        "  private ImmutableEnumValueDef(");
+    m.put("return title;",
         "if(titleMethod != null) {\n" +
-            "      try {\n" +
-            "        return (String)titleMethod.invoke(null, this, title);\n" +
-            "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
-            "      }\n" +
-            "    }\n" +
-            "    return title;");
-    writeFile(file, str);
+        "      try {\n" +
+        "        return (String)titleMethod.invoke(null, this, title);\n" +
+        "      } catch (IllegalAccessException | InvocationTargetException e) {\n" +
+        "      }\n" +
+        "    }\n" +
+        "    return title;");
+    return m;
   }
 
-  private String readFile(File file) {
-    if (!file.exists()) {
-      throw new RuntimeException("file not found : " + file.getAbsolutePath());
+  private static String applyReplacements(String source, Map<String, String> replacements) {
+    for (Map.Entry<String, String> entry : replacements.entrySet()) {
+      source = source.replace(entry.getKey(), entry.getValue());
     }
-    try {
-      StringBuffer stringBuffer = new StringBuffer();
-      BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
-      String content;
-      while ((content = bufferedReader.readLine()) != null) {
-        stringBuffer.append(content).append("\n");
+    return source;
+  }
+
+  /**
+   * A Writer that buffers everything, applies the patch replacements, and only
+   * flushes the patched content to the underlying writer on close().
+   */
+  private static final class PatchingWriter extends Writer {
+    private final StringWriter buffer = new StringWriter();
+    private final Writer delegate;
+    private final Map<String, String> replacements;
+
+    PatchingWriter(Writer delegate, Map<String, String> replacements) {
+      this.delegate = delegate;
+      this.replacements = replacements;
+    }
+
+    @Override public void write(char[] cbuf, int off, int len) { buffer.write(cbuf, off, len); }
+    @Override public void flush() throws IOException { /* buffer until close */ }
+
+    @Override
+    public void close() throws IOException {
+      String patched = applyReplacements(buffer.toString(), replacements);
+      delegate.write(patched);
+      delegate.close();
+    }
+  }
+
+  /**
+   * A JavaFileObject wrapper that returns a PatchingWriter for openWriter().
+   */
+  private static final class PatchingJavaFileObject implements JavaFileObject {
+    private final JavaFileObject delegate;
+    private final Map<String, String> replacements;
+
+    PatchingJavaFileObject(JavaFileObject delegate, Map<String, String> replacements) {
+      this.delegate = delegate;
+      this.replacements = replacements;
+    }
+
+    @Override public Writer openWriter() throws IOException {
+      return new PatchingWriter(delegate.openWriter(), replacements);
+    }
+
+    // --- delegation boilerplate ---
+    @Override public URI toUri() { return delegate.toUri(); }
+    @Override public String getName() { return delegate.getName(); }
+    @Override public InputStream openInputStream() throws IOException { return delegate.openInputStream(); }
+    @Override public OutputStream openOutputStream() throws IOException { return delegate.openOutputStream(); }
+    @Override public Reader openReader(boolean ignoreEncodingErrors) throws IOException { return delegate.openReader(ignoreEncodingErrors); }
+    @Override public CharSequence getCharContent(boolean ignoreEncodingErrors) throws IOException { return delegate.getCharContent(ignoreEncodingErrors); }
+    @Override public boolean delete() { return delegate.delete(); }
+    @Override public Kind getKind() { return delegate.getKind(); }
+    @Override public boolean isNameCompatible(String simpleName, Kind kind) { return delegate.isNameCompatible(simpleName, kind); }
+    @Override public javax.lang.model.element.NestingKind getNestingKind() { return delegate.getNestingKind(); }
+    @Override public javax.lang.model.element.Modifier getAccessLevel() { return delegate.getAccessLevel(); }
+    @Override public long getLastModified() { return delegate.getLastModified(); }
+  }
+
+  /**
+   * A Filer that wraps createSourceFile() for the three target classes in the
+   * metadata domain package and returns a PatchingJavaFileObject.
+   */
+  private static final class PatchingFiler extends ForwardingFiler {
+    private static final String TARGET_PACKAGE = "com.q7link.framework.metadata.domain.";
+    private final Filer delegate;
+
+    PatchingFiler(Filer delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override protected Filer delegate() { return delegate; }
+
+    @Override
+    public JavaFileObject createSourceFile(CharSequence name, Element... originatingElements)
+        throws IOException {
+      JavaFileObject original = delegate.createSourceFile(name, originatingElements);
+      String className = name.toString();
+      if (className.equals(TARGET_PACKAGE + "ImmutableEntity")) {
+        return new PatchingJavaFileObject(original, ENTITY_REPLACEMENTS);
+      } else if (className.equals(TARGET_PACKAGE + "ImmutableField")) {
+        return new PatchingJavaFileObject(original, FIELD_REPLACEMENTS);
+      } else if (className.equals(TARGET_PACKAGE + "ImmutableEnumValueDef")) {
+        return new PatchingJavaFileObject(original, ENUM_VALUE_REPLACEMENTS);
       }
-      bufferedReader.close();
-      return stringBuffer.toString();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private void writeFile(File file, String content) {
-    try {
-      BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), "UTF-8"));
-      bufferedWriter.write(content);
-      bufferedWriter.close();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+      return original;
     }
   }
 
@@ -264,7 +325,27 @@ public final class Processor extends AbstractGenerator {
 
   @Override
   public synchronized void init(final ProcessingEnvironment processingEnv) {
-    super.init(new RestrictingIncrementalProcessingEnvironment(processingEnv));
+    super.init(new PatchingProcessingEnvironment(new RestrictingIncrementalProcessingEnvironment(processingEnv)));
+  }
+
+  /** Wraps the Filer so that writes to the three target classes are patched at write-time. */
+  private static final class PatchingProcessingEnvironment extends ForwardingProcessingEnvironment {
+    private final ProcessingEnvironment delegate;
+    private Filer patchingFiler;
+
+    PatchingProcessingEnvironment(ProcessingEnvironment delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override protected ProcessingEnvironment delegate() { return delegate; }
+
+    @Override
+    public Filer getFiler() {
+      if (patchingFiler == null) {
+        patchingFiler = new PatchingFiler(delegate.getFiler());
+      }
+      return patchingFiler;
+    }
   }
 
   private final class RestrictingIncrementalProcessingEnvironment extends ForwardingProcessingEnvironment {
